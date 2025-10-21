@@ -1,0 +1,45 @@
+    <h1>📊 Folder Comparison Report</h1>
+    <div style='text-align: right; color: #6e7681; font-size: 0.85em; font-style: italic; margin: -10px 0 20px 0;'>Made by Vitalii Honcharuk</div>
+    
+    <div class='info-grid'>
+        <div class='info-left'>
+            <strong>Generated:</strong> {{GeneratedTime}}<br>
+            <strong>Source:</strong> {{EscapedSourcePath}}
+            {{#if SourceBranch}}
+            <br><span style='margin-left: 20px; color: #6e7681; font-size: 0.9em;'>
+                📌 Branch: <code style='background: #f6f8fa; padding: 2px 6px; border-radius: 3px;'>{{SourceBranch}}</code>
+                @ <code style='background: #f6f8fa; padding: 2px 6px; border-radius: 3px;' title='{{SourceCommit}}'>{{SourceCommitShort}}</code>
+            </span>
+            {{/if}}
+            <br><strong>Target:</strong> {{EscapedTargetPath}}
+            {{#if TargetBranch}}
+            <br><span style='margin-left: 20px; color: #6e7681; font-size: 0.9em;'>
+                📌 Branch: <code style='background: #f6f8fa; padding: 2px 6px; border-radius: 3px;'>{{TargetBranch}}</code>
+                @ <code style='background: #f6f8fa; padding: 2px 6px; border-radius: 3px;' title='{{TargetCommit}}'>{{TargetCommitShort}}</code>
+            </span>
+            {{/if}}
+            <br><strong>Duration:</strong> {{Duration}}{{#if HasFilters}}
+            <br><br><strong>Diff Filters Applied:</strong>{{#each Filters}}
+            <br>• {{this}}{{/each}}{{/if}}
+        </div>
+        <div class='info-right'>
+            <div class='path-override-section'>
+                <div class='path-override-title'>🔧 Local Paths Override</div>
+                <div class='path-override-field'>
+                    <label for='user-source-path'>Source:</label>
+                    <input type='text' id='user-source-path' class='path-override-input' 
+                           placeholder='{{EscapedSourcePath}}' title='Your local source repository path'>
+                </div>
+                <div class='path-override-field'>
+                    <label for='user-target-path'>Target:</label>
+                    <input type='text' id='user-target-path' class='path-override-input' 
+                           placeholder='{{EscapedTargetPath}}' title='Your local target repository path'>
+                </div>
+                <div class='path-override-actions'>
+                    <button onclick='saveUserPaths()' class='path-btn path-save'>💾 Save</button>
+                    <button onclick='resetUserPaths()' class='path-btn path-reset'>↺ Reset</button>
+                </div>
+                <div id='path-status' class='path-status'></div>
+            </div>
+        </div>
+    </div>

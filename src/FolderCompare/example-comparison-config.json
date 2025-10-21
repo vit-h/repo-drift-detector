@@ -1,0 +1,49 @@
+{
+  "sourcePath": "C:\\Path\\To\\Source",
+  "targetPath": "C:\\Path\\To\\Target",
+  "outputPath": ".",
+  "includeExtensions": [
+    ".sql"
+  ],
+  "ignoreFolders": [
+    "Misc",
+    "bin",
+    "obj"
+  ],
+  "sortInserts": true,
+  "allowedSubstitutions": [
+    {
+      "name": "TimeZone Conversion - Basic GETDATE()",
+      "source": "GETDATE()",
+      "target": "cast(getdate() AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific Standard Time' as datetime)",
+      "ignoreCase": true,
+      "trimWhitespaceAround": true,
+      "reportMatched": true
+    },
+    {
+      "name": "Filegroup Removal - ON [PRIMARY]",
+      "source": "ON [PRIMARY]",
+      "target": "",
+      "ignoreCase": true,
+      "trimWhitespaceAround": true,
+      "reportMatched": true
+    }
+  ],
+  "whitelistLinePatterns": [
+    {
+      "name": "Line exists only in source",
+      "contains": "RowRevision]",
+      "existsInSource": true,
+      "existsInTarget": false
+    }
+  ],
+  "whitelistFilePatterns": [
+    {
+      "name": "Data files - Allow source missing lines",
+      "pattern": "*_Data.sql",
+      "allowLineMissingInSource": true,
+      "allowLineMissingInTarget": false,
+      "allowModified": true
+    }
+  ]
+}

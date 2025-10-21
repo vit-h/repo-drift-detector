@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='author' content='Vitalii Honcharuk'>
+    <title>Folder Comparison Report</title>
+    <style>
+        body { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; margin: 20px; background: #0d1117; color: #c9d1d9; line-height: 1.6; }
+        h1 { color: #58a6ff; border-bottom: 3px solid #21262d; padding-bottom: 12px; font-weight: 600; }
+        h2 { color: #79c0ff; margin-top: 30px; font-weight: 500; }
+        .info { background: #161b22; padding: 18px; border-left: 4px solid #1f6feb; margin: 20px 0; border-radius: 6px; }
+        .file-section { background: #161b22; margin: 15px 0; padding: 18px; border-radius: 8px; border: 1px solid #30363d; }
+        .file-header { font-weight: 600; color: #f0883e; font-size: 1.1em; margin-bottom: 8px; }
+        .diff-button { background: linear-gradient(180deg, #1f6feb 0%, #1a5fd8 100%); color: white; border: none; padding: 10px 18px; 
+                      border-radius: 6px; cursor: pointer; text-decoration: none; 
+                      display: inline-block; margin: 5px 5px 5px 0; font-size: 14px; font-weight: 500; 
+                      box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: all 0.2s; }
+        .diff-button:hover { background: linear-gradient(180deg, #2672f3 0%, #1f6feb 100%); transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+        .file-link { color: #58a6ff; text-decoration: none; }
+        .file-link:hover { text-decoration: underline; color: #79c0ff; }
+        .stats { color: #d2a8ff; font-weight: 500; }
+        .summary-table { border-collapse: collapse; margin: 20px 0; }
+        .summary-table td { padding: 8px 20px; }
+        .toast { position: fixed; bottom: 24px; right: 24px; background: linear-gradient(135deg, #238636 0%, #2ea043 100%); color: white; 
+                padding: 16px 28px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); 
+                display: none; font-weight: 500; z-index: 1000; font-size: 15px; }
+        .diff-viewer { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+                      background: rgba(1,4,9,0.95); backdrop-filter: blur(4px); z-index: 2000; overflow: auto; }
+        .diff-viewer.active { display: block; }
+        .diff-content { background: #0d1117; margin: 0; width: 100%; height: 100%; padding: 24px; 
+                       box-sizing: border-box; overflow: auto; }
+        .diff-header { display: flex; justify-content: space-between; align-items: center; 
+                      padding-bottom: 16px; border-bottom: 2px solid #21262d; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+        .diff-title { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 300px; }
+        .diff-file-link { color: #58a6ff; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .diff-file-link:hover { text-decoration: underline; color: #79c0ff; }
+        .diff-file-link svg { width: 16px; height: 16px; fill: currentColor; }
+        .diff-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .diff-toggle { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 8px 16px; 
+                      border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+        .diff-toggle:hover { background: #30363d; border-color: #58a6ff; }
+        .diff-toggle.active { background: linear-gradient(180deg, #1f6feb 0%, #1a5fd8 100%); color: white; border-color: #1f6feb; }
+        .diff-close { background: linear-gradient(180deg, #da3633 0%, #c93532 100%); color: white; border: none; padding: 10px 22px; 
+                     border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: 600; 
+                     box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: all 0.2s; }
+        .diff-close:hover { background: linear-gradient(180deg, #e54643 0%, #da3633 100%); transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+        .diff-table { width: max-content; min-width: 100%; border-collapse: collapse; font-family: 'Consolas', 'SF Mono', 'Monaco', monospace; font-size: 13px; }
+        .diff-table td { padding: 3px 10px; vertical-align: top; border-right: 1px solid #21262d; }
+        .diff-table td:last-child { border-right: none; }
+        .line-number { color: #6e7681; text-align: right; user-select: none; min-width: 50px; width: 50px; background: #161b22; 
+                      font-weight: 500; padding-left: 8px; padding-right: 8px; }
+        .line-content { white-space: pre; font-family: 'Consolas', 'SF Mono', monospace; min-width: 500px; }
+        .line-content .prefix { color: #6e7681; margin-right: 8px; font-weight: 600; user-select: none; }
+        .diff-scroll-wrapper { overflow-x: auto; overflow-y: visible; }
+        .side-by-side-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .side-panel-scroll { overflow-x: auto; overflow-y: auto; }
+        .line-added { background: rgba(46, 160, 67, 0.12); border-left: 3px solid #3fb950; }
+        .line-added .prefix { color: #3fb950; }
+        .line-removed { background: rgba(248, 81, 73, 0.12); border-left: 3px solid #f85149; }
+        .line-removed .prefix { color: #f85149; }
+        .line-modified { background: rgba(187, 128, 9, 0.12); border-left: 3px solid #d29922; }
+        .line-modified .prefix { color: #d29922; }
+        .line-unchanged { background: #0d1117; }
+        .line-empty { background: #010409; }
+        .char-added { background: rgba(46, 160, 67, 0.4); color: #c9d1d9; padding: 2px 3px; border-radius: 3px; font-weight: 600; }
+        .char-removed { background: rgba(248, 81, 73, 0.4); color: #c9d1d9; padding: 2px 3px; border-radius: 3px; font-weight: 600; }
+        .char-modified { background: rgba(187, 128, 9, 0.4); color: #c9d1d9; padding: 2px 3px; border-radius: 3px; font-weight: 600; }
+        .insert-indicator { display: inline-block; width: 1px; height: 1em; background: #f85149; 
+                           vertical-align: middle; margin: 0 1px; cursor: help; }
+        .delete-indicator { display: inline-block; width: 1px; height: 1em; background: #3fb950; 
+                           vertical-align: middle; margin: 0 1px; cursor: help; }
+        .side-by-side .diff-table { display: grid; grid-template-columns: 45px 1fr 45px 1fr; }
+        .side-panel { background: #161b22; padding: 12px; border-radius: 6px; border: 1px solid #21262d; }
+        .side-title { color: #58a6ff; font-weight: 600; margin-bottom: 12px; padding: 8px; 
+                     border-bottom: 2px solid #21262d; text-align: center; font-size: 14px; }
+        .unified-view .diff-table { display: table; }
+        .collapsible-section { margin: 30px 0; }
+        .section-header { background: linear-gradient(135deg, #1f6feb 0%, #1a5fd8 100%); color: white; padding: 16px 20px; 
+                         border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; 
+                         font-size: 1.2em; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.2s; 
+                         user-select: none; }
+        .section-header:hover { background: linear-gradient(135deg, #2672f3 0%, #1f6feb 100%); transform: translateY(-1px); 
+                               box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+        .section-header.collapsed { background: linear-gradient(135deg, #21262d 0%, #161b22 100%); color: #c9d1d9; 
+                                   box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .section-header.collapsed:hover { background: linear-gradient(135deg, #30363d 0%, #21262d 100%); }
+        .section-toggle { font-size: 1.4em; font-weight: bold; transition: transform 0.3s; }
+        .section-header.collapsed .section-toggle { transform: rotate(-90deg); }
+        .section-content { max-height: none; overflow: visible; transition: max-height 0.3s ease-in-out; }
+        .section-content.collapsed { max-height: 0; overflow: hidden; }
+        .section-count { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; 
+                        font-size: 0.85em; font-weight: 600; margin-left: 12px; }
+        .file-diff-container { margin-bottom: 30px; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
+        .file-diff-header { background: #161b22; padding: 12px 16px; border-bottom: 1px solid #30363d; 
+                           display: flex; justify-content: space-between; align-items: center; cursor: pointer; 
+                           transition: background 0.2s; }
+        .file-diff-header:hover { background: #1c2128; }
+        .file-diff-title { font-weight: 600; color: #f0883e; font-size: 1.05em; flex: 1; }
+        .file-diff-stats { color: #6e7681; font-size: 0.9em; margin: 0 16px; }
+        .file-diff-toggle { color: #58a6ff; font-size: 1.2em; transition: transform 0.2s; }
+        .file-diff-header.collapsed .file-diff-toggle { transform: rotate(-90deg); }
+        .file-paths { background: #0d1117; padding: 12px 16px; border-bottom: 1px solid #30363d; 
+                     display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 0.9em; }
+        .file-path-item { display: flex; flex-direction: column; gap: 6px; }
+        .file-path-label { color: #8b949e; font-weight: 600; display: inline-block; margin-right: 12px; }
+        .file-path-links { display: inline-flex; gap: 12px; align-items: center; }
+        .file-path-full { color: #6e7681; font-size: 0.85em; margin-top: 4px; font-family: 'Consolas', monospace; }
+        .diff-command { background: #161b22; padding: 8px 12px; border-top: 1px solid #30363d; 
+                       font-family: 'Consolas', monospace; font-size: 0.85em; color: #79c0ff; 
+                       cursor: pointer; transition: background 0.2s; }
+        .diff-command:hover { background: #1c2128; color: #58a6ff; }
+        .diff-command::before { content: '$ '; color: #6e7681; }
+        .file-diff-content { background: #0d1117; overflow: visible; transition: max-height 0.3s ease-in-out; }
+        .file-diff-content.collapsed { max-height: 0; overflow: hidden; }
+        .filter-rule-section { margin-bottom: 24px; border: 2px solid #3b8070; border-radius: 8px; overflow: hidden; }
+        .filter-rule-header { background: #1a4d3e; padding: 12px 16px; 
+                             display: flex; justify-content: space-between; align-items: center; cursor: pointer; 
+                             transition: background 0.2s; }
+        .filter-rule-header:hover { background: #215a48; }
+        .filter-rule-title { font-weight: 700; color: #7ee787; font-size: 1.1em; flex: 1; }
+        .filter-rule-stats { color: #aff5b4; font-size: 0.9em; margin: 0 16px; font-weight: 600; }
+        .filter-rule-toggle { color: #7ee787; font-size: 1.2em; transition: transform 0.2s; }
+        .filter-rule-header.collapsed .filter-rule-toggle { transform: rotate(-90deg); }
+        .filter-rule-content { background: #0d1117; max-height: none; overflow: visible; transition: max-height 0.3s ease-in-out; padding: 16px; }
+        .filter-rule-content.collapsed { max-height: 0; padding: 0; overflow: hidden; }
+        .diff-view-toggle { background: #21262d; border: 1px solid #30363d; border-radius: 6px; 
+                           display: inline-flex; overflow: hidden; margin: 12px 16px; }
+        .diff-view-btn { background: transparent; color: #c9d1d9; border: none; padding: 6px 14px; 
+                        cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .diff-view-btn:hover { background: #30363d; }
+        .diff-view-btn.active { background: #1f6feb; color: white; }
+        .back-to-top { position: fixed; bottom: 30px; right: 30px; background: linear-gradient(135deg, #1f6feb 0%, #1a5fd8 100%); 
+                      color: white; border: none; padding: 14px 18px; border-radius: 50%; cursor: pointer; 
+                      font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); transition: all 0.3s; 
+                      z-index: 1000; opacity: 0; visibility: hidden; }
+        .back-to-top.visible { opacity: 1; visibility: visible; }
+        .back-to-top:hover { background: linear-gradient(135deg, #2672f3 0%, #1f6feb 100%); 
+                            transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.5); }
+        .stat-link { color: inherit; text-decoration: none; transition: color 0.2s; }
+        .stat-link:hover { color: #58a6ff; text-decoration: underline; cursor: pointer; }
+        .whitelist-badge { background: linear-gradient(135deg, #238636 0%, #2ea043 100%); color: white; 
+                          padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: 600; 
+                          margin-left: 8px; display: inline-block; cursor: help; 
+                          box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .whitelist-badge:hover { background: linear-gradient(135deg, #2ea043 0%, #238636 100%); }
+        
+        /* Compact Path Override Section */
+        .info-grid { display: grid; grid-template-columns: 1fr 400px; gap: 20px; background: #161b22; 
+                     padding: 18px; border-left: 4px solid #1f6feb; margin: 20px 0; border-radius: 6px; }
+        .info-left { color: #c9d1d9; }
+        .info-right { border-left: 2px solid #30363d; padding-left: 20px; }
+        .path-override-section { display: flex; flex-direction: column; gap: 10px; }
+        .path-override-title { color: #79c0ff; font-weight: 600; font-size: 0.95em; margin-bottom: 4px; }
+        .path-override-field { display: grid; grid-template-columns: 55px 1fr; gap: 8px; align-items: center; }
+        .path-override-field label { color: #8b949e; font-size: 0.9em; font-weight: 500; }
+        .path-override-input { background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; 
+                              padding: 6px 10px; border-radius: 4px; font-size: 0.85em; 
+                              font-family: 'Consolas', monospace; width: 100%; }
+        .path-override-input:focus { outline: none; border-color: #1f6feb; box-shadow: 0 0 0 2px rgba(31,111,235,0.1); }
+        .path-override-input:hover { border-color: #58a6ff; }
+        .path-override-actions { display: flex; gap: 6px; margin-top: 4px; }
+        .path-btn { border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; 
+                   font-size: 0.85em; font-weight: 600; transition: all 0.2s; }
+        .path-save { background: linear-gradient(135deg, #238636 0%, #2ea043 100%); color: white; }
+        .path-save:hover { background: linear-gradient(135deg, #2ea043 0%, #238636 100%); transform: translateY(-1px); }
+        .path-reset { background: #30363d; color: #c9d1d9; }
+        .path-reset:hover { background: #484f58; }
+        .path-status { font-size: 0.8em; padding: 6px 10px; border-radius: 4px; display: none; margin-top: 6px; }
+        .path-status.success { background: rgba(46,160,67,0.15); color: #7ee787; display: block; border: 1px solid #3fb950; }
+        .path-status.error { background: rgba(248,81,73,0.15); color: #ffa198; display: block; border: 1px solid #f85149; }
+        @media (max-width: 1200px) {
+            .info-grid { grid-template-columns: 1fr; }
+            .info-right { border-left: none; border-top: 2px solid #30363d; padding-left: 0; padding-top: 20px; }
+        }
+    </style>
+    <script>
+        // ============================================================================
+        // MINIMAL PATH CONFIGURATION - Core Variables & Functions
+        // ============================================================================
+        const DEFAULT_SOURCE_BASE = '{{JsEscapedSourcePath}}';
+        const DEFAULT_TARGET_BASE = '{{JsEscapedTargetPath}}';
+        const STORAGE_KEY_PREFIX = '{{StorageKeyPrefix}}';
+        
+        let userSourceBasePath = localStorage.getItem(STORAGE_KEY_PREFIX + '-repo-source-base') || DEFAULT_SOURCE_BASE;
+        let userTargetBasePath = localStorage.getItem(STORAGE_KEY_PREFIX + '-repo-target-base') || DEFAULT_TARGET_BASE;
+        
+        // Core function: Build full path from base + relative
+        function getFullPath(isSource, relativePath) {
+            const base = isSource ? userSourceBasePath : userTargetBasePath;
+            // Handle path separators (ensure Windows backslashes)
+            const cleanRelative = relativePath.replace(/\//g, '\\\\');
+            // Combine paths
+            if (base.endsWith('\\\\')) {
+                return base + cleanRelative;
+            }
+            return base + '\\\\' + cleanRelative;
+        }
+        
+        // Save user paths to localStorage
+        function saveUserPaths() {
+            const srcInput = document.getElementById('user-source-path');
+            const tgtInput = document.getElementById('user-target-path');
+            
+            const srcValue = srcInput.value.trim();
+            const tgtValue = tgtInput.value.trim();
+            
+            if (srcValue) {
+                userSourceBasePath = srcValue;
+                localStorage.setItem(STORAGE_KEY_PREFIX + '-repo-source-base', srcValue);
+            }
+            if (tgtValue) {
+                userTargetBasePath = tgtValue;
+                localStorage.setItem(STORAGE_KEY_PREFIX + '-repo-target-base', tgtValue);
+            }
+            
+            updateAllFileLinks();
+            showPathStatus('success', '✅ Paths saved! All links updated.');
+        }
+        
+        // Reset to default paths
+        function resetUserPaths() {
+            userSourceBasePath = DEFAULT_SOURCE_BASE;
+            userTargetBasePath = DEFAULT_TARGET_BASE;
+            localStorage.removeItem(STORAGE_KEY_PREFIX + '-repo-source-base');
+            localStorage.removeItem(STORAGE_KEY_PREFIX + '-repo-target-base');
+            document.getElementById('user-source-path').value = '';
+            document.getElementById('user-target-path').value = '';
+            showPathStatus('success', '↺ Reset to default paths');
+        }
+        
+        // Show status message
+        function showPathStatus(type, message) {
+            const status = document.getElementById('path-status');
+            status.className = 'path-status ' + type;
+            status.textContent = message;
+            setTimeout(() => { status.style.display = 'none'; }, 4000);
+        }
+        
+        // Update all file links with current base paths
+        function updateAllFileLinks() {
+            document.querySelectorAll('a[data-relative-path]').forEach(link => {
+                const relativePath = link.getAttribute('data-relative-path');
+                const isSource = link.getAttribute('data-is-source') === 'true';
+                const fullPath = getFullPath(isSource, relativePath);
+                // Use file:/// protocol with forward slashes
+                link.href = 'file:///' + fullPath.replace(/\\\\/g, '/');
+            });
+        }
+        
+        // Handle click on Browse links with fallback to clipboard
+        function handleBrowseLinkClick(event) {
+            const link = event.currentTarget;
+            const href = link.href;
+            
+            // Try to open, but if browser blocks it, copy to clipboard instead
+            setTimeout(() => {
+                // Extract path without file:/// protocol
+                const path = href.replace(/^file:\/\/\//, '');
+                navigator.clipboard.writeText(path).then(() => {
+                    showToast('📋 Path copied to clipboard! Paste in browser address bar to open.');
+                }).catch(err => {
+                    console.error('Clipboard failed:', err);
+                });
+            }, 100);
+        }
+        
+        // Attach click handlers to all browse links after page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.file-browse-link').forEach(link => {
+                link.addEventListener('click', handleBrowseLinkClick);
+            });
+        });
+        
+        // Open file in VS Code
+        function openInVSCode(isSource, relativePath) {
+            const fullPath = getFullPath(isSource, relativePath);
+            const vscodeUri = 'vscode://file/' + fullPath.replace(/\\\\/g, '/');
+            window.location.href = vscodeUri;
+        }
+        
+        // Generate and execute diff command
+        function executeDiff(relativePath) {
+            const srcPath = getFullPath(true, relativePath);
+            const tgtPath = getFullPath(false, relativePath);
+            const command = `code --diff "${srcPath}" "${tgtPath}"`;
+            
+            navigator.clipboard.writeText(command).then(() => {
+                showToast('📋 Diff command copied to clipboard!');
+            }).catch(err => {
+                showToast('❌ Failed to copy: ' + err);
+            });
+        }
+        
+        // Load saved paths on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            if (userSourceBasePath !== DEFAULT_SOURCE_BASE) {
+                document.getElementById('user-source-path').value = userSourceBasePath;
+            }
+            if (userTargetBasePath !== DEFAULT_TARGET_BASE) {
+                document.getElementById('user-target-path').value = userTargetBasePath;
+            }
+            updateAllFileLinks();
+        });
+        
+        // ============================================================================
+        // DEFERRED RENDER QUEUE - Process diff renders after all scripts load
+        // ============================================================================
+        window.deferredRenders = window.deferredRenders || [];
+        
+        function queueDiffRender(fileId, diffData) {
+            window.deferredRenders.push({ fileId: fileId, diffData: diffData });
+        }
+        
+        function processDeferredRenders() {
+            if (typeof renderFileDiffUnified === 'function') {
+                window.deferredRenders.forEach(function(item) {
+                    const container = document.getElementById(item.fileId + '-diff');
+                    if (container) {
+                        renderFileDiffUnified(container, item.diffData, item.fileId);
+                    }
+                });
+                window.deferredRenders = [];
+            }
+        }
+        
+        // Process deferred renders when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', processDeferredRenders);
+        } else {
+            // DOM already loaded, process immediately
+            setTimeout(processDeferredRenders, 0);
+        }
+        
+        // ============================================================================
+        // END PATH CONFIGURATION
+        // ============================================================================
+        
+        function toggleSection(sectionId) {
+            const header = document.getElementById(sectionId + '-header');
+            const content = document.getElementById(sectionId + '-content');
+            header.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
+        }
+        function toggleFileDiff(fileId) {
+            const header = document.getElementById(fileId + '-header');
+            const content = document.getElementById(fileId + '-content');
+            header.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
+        }
+        function toggleFilterRule(ruleId) {
+            const header = document.getElementById(ruleId + '-header');
+            const content = document.getElementById(ruleId + '-content');
+            header.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
+        }
+        let globalViewMode = 'sidebyside';
+        function toggleDiffView(fileId, mode) {
+            // Set global mode and update all files
+            globalViewMode = mode;
+            
+            // Find all file diff containers
+            const allDiffContainers = document.querySelectorAll('[id$="-diff"]');
+            allDiffContainers.forEach(container => {
+                const containerId = container.id;
+                const currentFileId = containerId.replace('-diff', '');
+                const diffData = JSON.parse(container.getAttribute('data-diff'));
+                
+                if (diffData && diffData.diffs && diffData.diffs.length > 0) {
+                    if (mode === 'sidebyside') {
+                        renderFileDiffSideBySide(container, diffData, currentFileId);
+                    } else {
+                        renderFileDiffUnified(container, diffData);
+                    }
+                }
+            });
+            
+            // Update all button states
+            const allButtons = document.querySelectorAll('.diff-view-btn');
+            allButtons.forEach(btn => {
+                const btnText = btn.textContent.trim().toLowerCase();
+                if ((mode === 'sidebyside' && btnText === 'side-by-side') || 
+                    (mode === 'unified' && btnText === 'unified')) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+        function syncScroll(source, targetId) {
+            const target = document.getElementById(targetId);
+            if (target && !source.isSyncing) {
+                target.isSyncing = true;
+                target.scrollLeft = source.scrollLeft;
+                target.scrollTop = source.scrollTop;
+                setTimeout(() => { target.isSyncing = false; }, 50);
+            }
+        }
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Command copied to clipboard!');
+            }).catch(err => {
+                showToast('Failed to copy: ' + err);
+            });
+        }
+        function copyDiffText(fileId) {
+            const diffContainer = document.getElementById(fileId + '-diff');
+            if (!diffContainer) {
+                showToast('Diff not found');
+                return;
+            }
+            const diffDataJson = diffContainer.getAttribute('data-diff');
+            if (!diffDataJson) {
+                showToast('Diff data not found');
+                return;
+            }
+            const data = JSON.parse(diffDataJson);
+            let diffText = '';
+            for (const diff of data.diffs) {
+                if (diff.type === 'Modified') {
+                    if (diff.sourceContent && diff.targetContent) {
+                        diffText += '- ' + diff.sourceContent + '\n';
+                        diffText += '+ ' + diff.targetContent + '\n';
+                    }
+                } else if (diff.type === 'Removed') {
+                    diffText += '- ' + (diff.content || '') + '\n';
+                } else if (diff.type === 'Added') {
+                    diffText += '+ ' + (diff.content || '') + '\n';
+                }
+            }
+            if (diffText) {
+                navigator.clipboard.writeText(diffText).then(() => {
+                    showToast('Diff copied to clipboard!');
+                }).catch(err => {
+                    showToast('Failed to copy: ' + err);
+                });
+            } else {
+                showToast('No diff text to copy');
+            }
+        }
+        function showDiffById(buttonId) {
+            const button = document.getElementById(buttonId);
+            const diffData = button.getAttribute('data-diff');
+            showDiff(diffData);
+        }
+        let currentViewMode = 'unified';
+        function toggleView(mode) {
+            currentViewMode = mode;
+            const container = document.getElementById('diffContainer');
+            container.className = mode === 'sidebyside' ? 'side-by-side' : 'unified-view';
+            document.querySelectorAll('.diff-toggle').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            // Re-render with new mode
+            const viewer = document.getElementById('diffViewer');
+            if (viewer.classList.contains('active') && window.currentDiffData) {
+                renderDiff(window.currentDiffData, mode);
+            }
+        }
+        function showDiff(diffData) {
+            const viewer = document.getElementById('diffViewer');
+            const header = document.getElementById('diffHeader');
+            
+            // Parse diff data
+            const data = JSON.parse(diffData);
+            window.currentDiffData = data;
+            
+            // Extract file paths from data (stored as data attributes)
+            const sourceFile = data.sourceFile || '';
+            const targetFile = data.targetFile || '';
+            const diffCommand = data.diffCommand || '';
+            
+            // Set header with clickable file links
+            const fileIcon = '<svg viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0113.25 16h-9.5A1.75 1.75 0 012 14.25V1.75zm1.75-.25a.25.25 0 00-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019 4.25V1.5H3.75a.25.25 0 00-.25.25zm6.75.062V4.25c0 .138.112.25.25.25h2.688a.252.252 0 00-.011-.013l-2.914-2.914a.272.272 0 00-.013-.011z"></path></svg>';
+            const vscodeIcon = '<svg viewBox="0 0 16 16"><path d="M11.28.161l.702.26a1 1 0 01.635.93v13.3a1 1 0 01-.635.928l-.702.261a1 1 0 01-1.151-.434L6.47 9.72l-2.925 2.187a.67.67 0 01-.848-.047l-.932-.905a.67.67 0 010-.943l2.376-2.282L1.765 5.448a.67.67 0 010-.943l.932-.905a.67.67 0 01.848-.047L6.47 6.74 10.13.605a1 1 0 011.15-.434zM10.5 2.28L7.375 7.5l3.125 5.219V2.28z"></path></svg>';
+            
+            header.innerHTML = `
+                <div class='diff-title'>
+                    <div style='display: flex; align-items: center; gap: 15px; flex-wrap: wrap;'>
+                        ${sourceFile ? `
+                            <a href='${sourceFile}' class='diff-file-link' title='Open source file in browser'>
+                                ${fileIcon} ${escapeHtml(data.source)}
+                            </a>
+                            <a href='#' class='diff-file-link' onclick='event.preventDefault(); copyToClipboard("code \\"${sourceFile.replace(/^file:\/\/\//, '')}\\""); return false;' title='Copy VS Code command'>
+                                ${vscodeIcon} Open in VS Code
+                            </a>` : escapeHtml(data.source)}
+                    </div>
+                    <div style='display: flex; align-items: center; gap: 15px; flex-wrap: wrap;'>
+                        ${targetFile ? `
+                            <a href='${targetFile}' class='diff-file-link' title='Open target file in browser'>
+                                ${fileIcon} ${escapeHtml(data.target)}
+                            </a>
+                            <a href='#' class='diff-file-link' onclick='event.preventDefault(); copyToClipboard("code \\"${targetFile.replace(/^file:\/\/\//, '')}\\""); return false;' title='Copy VS Code command'>
+                                ${vscodeIcon} Open in VS Code
+                            </a>` : escapeHtml(data.target)}
+                    </div>
+                    ${diffCommand ? `<a href='#' class='diff-file-link' onclick='event.preventDefault(); copyToClipboard("${diffCommand}"); return false;' title='Copy diff command'>${vscodeIcon} Copy Diff Command</a>` : ''}
+                </div>
+            `;
+            
+            renderDiff(data, currentViewMode);
+            viewer.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+        function closeDiff() {
+            const viewer = document.getElementById('diffViewer');
+            viewer.classList.remove('active');
+            document.body.style.overflow = ''; // Restore scrolling
+        }
+        // Close on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeDiff();
+        });
+        function renderDiff(data, mode) {
+            const container = document.getElementById('diffContainer');
+            container.className = mode === 'sidebyside' ? 'side-by-side' : 'unified-view';
+            
+            if (mode === 'sidebyside') {
+                renderSideBySide(data, container);
+            } else {
+                renderUnified(data, container);
+            }
+        }
+        function renderUnified(data, container) {
+            let html = '<table class="diff-table">';
+            for (const diff of data.diffs) {
+                let cssClass = 'line-unchanged';
+                let prefix = '&nbsp;';
+                if (diff.type === 'Added') { cssClass = 'line-added'; prefix = '+'; }
+                else if (diff.type === 'Removed') { cssClass = 'line-removed'; prefix = '-'; }
+                else if (diff.type === 'Modified') { cssClass = 'line-modified'; prefix = '~'; }
+                
+                const lineNum = diff.source || diff.target || '';
+                let content = '';
+                
+                // For modified lines, show both with highlighting
+                if (diff.type === 'Modified' && diff.sourceContent && diff.targetContent) {
+                    const sourceHighlighted = highlightCharDiff(diff.sourceContent, diff.targetContent, true);
+                    const targetHighlighted = highlightCharDiff(diff.sourceContent, diff.targetContent, false);
+                    content = `<span class='prefix'>-</span>${sourceHighlighted}<br><span class='prefix'>+</span>${targetHighlighted}`;
+                } else {
+                    content = `<span class='prefix'>${prefix}</span>` + escapeHtml(diff.content || '');
+                }
+                
+                html += `<tr class="${cssClass}">`;
+                html += `<td class="line-number">${lineNum}</td>`;
+                html += `<td class="line-content">${content}</td>`;
+                html += `</tr>`;
+            }
+            html += '</table>';
+            container.innerHTML = html;
+        }
+        function renderSideBySide(data, container) {
+            // Build line-aligned view
+            const maxSourceLine = Math.max(...data.diffs.map(d => parseInt(d.source) || 0));
+            const maxTargetLine = Math.max(...data.diffs.map(d => parseInt(d.target) || 0));
+            const maxLine = Math.max(maxSourceLine, maxTargetLine);
+            
+            // Create maps for quick lookup
+            const sourceLines = new Map();
+            const targetLines = new Map();
+            
+            for (const diff of data.diffs) {
+                if (diff.type === 'Removed' || diff.type === 'Modified') {
+                    const lineNum = parseInt(diff.source);
+                    if (lineNum > 0) sourceLines.set(lineNum, diff);
+                }
+                if (diff.type === 'Added' || diff.type === 'Modified') {
+                    const lineNum = parseInt(diff.target);
+                    if (lineNum > 0) targetLines.set(lineNum, diff);
+                }
+            }
+            
+            let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;height:100%;overflow:hidden;">';
+            html += '<div style="overflow-y:auto;"><div class="side-title">Source (Lines with Changes)</div><table class="diff-table" style="width:100%;">';
+            
+            // Render source lines in order
+            for (let i = 1; i <= maxSourceLine; i++) {
+                if (sourceLines.has(i)) {
+                    const diff = sourceLines.get(i);
+                    const cssClass = diff.type === 'Removed' ? 'line-removed' : 'line-modified';
+                    const content = diff.sourceContent || diff.content || '';
+                    const highlighted = diff.type === 'Modified' ? highlightCharDiff(content, diff.targetContent || '', true) : escapeHtml(content);
+                    html += `<tr class="${cssClass}"><td class="line-number">${i}</td><td class="line-content"><span class='prefix'>-</span>${highlighted}</td></tr>`;
+                }
+            }
+            html += '</table></div>';
+            
+            // Render target lines in order
+            html += '<div style="overflow-y:auto;"><div class="side-title">Target (Lines with Changes)</div><table class="diff-table" style="width:100%;">';
+            for (let i = 1; i <= maxTargetLine; i++) {
+                if (targetLines.has(i)) {
+                    const diff = targetLines.get(i);
+                    const cssClass = diff.type === 'Added' ? 'line-added' : 'line-modified';
+                    const content = diff.targetContent || diff.content || '';
+                    const highlighted = diff.type === 'Modified' ? highlightCharDiff(diff.sourceContent || '', content, false) : escapeHtml(content);
+                    html += `<tr class="${cssClass}"><td class="line-number">${i}</td><td class="line-content"><span class='prefix'>+</span>${highlighted}</td></tr>`;
+                }
+            }
+            html += '</table></div></div>';
+            container.innerHTML = html;
+        }
+        function highlightCharDiff(str1, str2, isSource) {
+            // Simple character-level diff highlighting
+            if (!str1 || !str2) return escapeHtml(isSource ? str1 : str2);
+            if (str1 === str2) return escapeHtml(str1);
+            
+            // Find common prefix
+            let prefixLen = 0;
+            while (prefixLen < str1.length && prefixLen < str2.length && str1[prefixLen] === str2[prefixLen]) {
+                prefixLen++;
+            }
+            
+            // Find common suffix (from end, not including prefix)
+            let suffixLen = 0;
+            while (suffixLen < (str1.length - prefixLen) && suffixLen < (str2.length - prefixLen) &&
+                   str1[str1.length - 1 - suffixLen] === str2[str2.length - 1 - suffixLen]) {
+                suffixLen++;
+            }
+            
+            const str = isSource ? str1 : str2;
+            const otherStr = isSource ? str2 : str1;
+            const prefix = str.substring(0, prefixLen);
+            const middle = str.substring(prefixLen, str.length - suffixLen);
+            const suffix = str.substring(str.length - suffixLen);
+            const otherMiddle = otherStr.substring(prefixLen, otherStr.length - suffixLen);
+            
+            // Escape and build highlighted HTML
+            const escapedPrefix = escapeHtml(prefix);
+            const escapedMiddle = escapeHtml(middle);
+            const escapedSuffix = escapeHtml(suffix);
+            
+            if (middle.length === 0 && otherMiddle.length === 0) {
+                return escapeHtml(str);
+            }
+            
+            // Determine if this is an insertion or deletion
+            const highlightClass = isSource ? 'char-removed' : 'char-added';
+            let result = escapedPrefix;
+            
+            // Show insertion indicator for target when source had nothing
+            if (isSource && middle.length === 0 && otherMiddle.length > 0) {
+                result += '<span class="insert-indicator" title="Text inserted here"></span>';
+            } else if (!isSource && middle.length > 0 && otherMiddle.length === 0) {
+                // Show the inserted text in target
+                result += `<span class="${highlightClass}">${escapedMiddle}</span>`;
+            } else if (isSource && middle.length > 0 && otherMiddle.length === 0) {
+                // Show the deleted text in source
+                result += `<span class="${highlightClass}">${escapedMiddle}</span>`;
+            } else if (!isSource && middle.length === 0 && otherMiddle.length > 0) {
+                // Target had nothing, show green indicator
+                result += '<span class="delete-indicator" title="Text deleted from source"></span>';
+            } else {
+                // Both have changes, show highlighted text
+                result += `<span class="${highlightClass}">${escapedMiddle}</span>`;
+            }
+            
+            result += escapedSuffix;
+            return result;
+        }
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+        function renderFileDiffUnified(container, data) {
+            let html = '<div class="diff-scroll-wrapper"><table class="diff-table" style="width:100%;">';
+            for (const diff of data.diffs) {
+                let cssClass = 'line-unchanged';
+                let prefix = '&nbsp;';
+                if (diff.type === 'Added') { cssClass = 'line-added'; prefix = '+'; }
+                else if (diff.type === 'Removed') { cssClass = 'line-removed'; prefix = '-'; }
+                else if (diff.type === 'Modified') { cssClass = 'line-modified'; prefix = '~'; }
+                const lineNum = diff.source || diff.target || '';
+                
+                // Add whitelist badge if this diff matched a rule
+                let whitelistBadge = '';
+                if (diff.matchedRule) {
+                    whitelistBadge = `<span class="whitelist-badge" title="Allowed by rule: ${escapeHtml(diff.matchedRule)}">✓ ${escapeHtml(diff.matchedRule)}</span>`;
+                }
+                
+                let content = '';
+                if (diff.type === 'Modified' && diff.sourceContent && diff.targetContent) {
+                    const sourceHighlighted = highlightCharDiff(diff.sourceContent, diff.targetContent, true);
+                    const targetHighlighted = highlightCharDiff(diff.sourceContent, diff.targetContent, false);
+                    content = `<span class='prefix'>-</span>${sourceHighlighted}${whitelistBadge}<br><span class='prefix'>+</span>${targetHighlighted}${whitelistBadge}`;
+                } else {
+                    content = `<span class='prefix'>${prefix}</span>` + escapeHtml(diff.content || '') + whitelistBadge;
+                }
+                html += `<tr class="${cssClass}"><td class="line-number">${lineNum}</td><td class="line-content">${content}</td></tr>`;
+            }
+            html += '</table></div>';
+            container.innerHTML = html;
+        }
+        function renderFileDiffSideBySide(container, data, fileId) {
+            const maxSourceLine = Math.max(...data.diffs.map(d => parseInt(d.source) || 0));
+            const maxTargetLine = Math.max(...data.diffs.map(d => parseInt(d.target) || 0));
+            const sourceLines = new Map();
+            const targetLines = new Map();
+            for (const diff of data.diffs) {
+                if (diff.type === 'Removed' || diff.type === 'Modified') {
+                    const lineNum = parseInt(diff.source);
+                    if (lineNum > 0) sourceLines.set(lineNum, diff);
+                }
+                if (diff.type === 'Added' || diff.type === 'Modified') {
+                    const lineNum = parseInt(diff.target);
+                    if (lineNum > 0) targetLines.set(lineNum, diff);
+                }
+            }
+            let html = '<div class="side-by-side-wrapper">';
+            html += `<div class="side-panel-scroll" id="source-${fileId}" onscroll="syncScroll(this, 'target-${fileId}')"><table class="diff-table">`;
+            for (let i = 1; i <= maxSourceLine; i++) {
+                if (sourceLines.has(i)) {
+                    const diff = sourceLines.get(i);
+                    const cssClass = diff.type === 'Removed' ? 'line-removed' : 'line-modified';
+                    const content = diff.sourceContent || diff.content || '';
+                    const highlighted = diff.type === 'Modified' ? highlightCharDiff(content, diff.targetContent || '', true) : escapeHtml(content);
+                    
+                    // Add whitelist badge if this diff matched a rule
+                    let whitelistBadge = '';
+                    if (diff.matchedRule) {
+                        whitelistBadge = `<span class="whitelist-badge" title="Allowed by rule: ${escapeHtml(diff.matchedRule)}">✓ ${escapeHtml(diff.matchedRule)}</span>`;
+                    }
+                    
+                    html += `<tr class="${cssClass}"><td class="line-number">${i}</td><td class="line-content"><span class='prefix'>-</span>${highlighted}${whitelistBadge}</td></tr>`;
+                }
+            }
+            html += '</table></div>';
+            html += `<div class="side-panel-scroll" id="target-${fileId}" onscroll="syncScroll(this, 'source-${fileId}')"><table class="diff-table">`;
+            for (let i = 1; i <= maxTargetLine; i++) {
+                if (targetLines.has(i)) {
+                    const diff = targetLines.get(i);
+                    const cssClass = diff.type === 'Added' ? 'line-added' : 'line-modified';
+                    const content = diff.targetContent || diff.content || '';
+                    const highlighted = diff.type === 'Modified' ? highlightCharDiff(diff.sourceContent || '', content, false) : escapeHtml(content);
+                    
+                    // Add whitelist badge if this diff matched a rule
+                    let whitelistBadge = '';
+                    if (diff.matchedRule) {
+                        whitelistBadge = `<span class="whitelist-badge" title="Allowed by rule: ${escapeHtml(diff.matchedRule)}">✓ ${escapeHtml(diff.matchedRule)}</span>`;
+                    }
+                    
+                    html += `<tr class="${cssClass}"><td class="line-number">${i}</td><td class="line-content"><span class='prefix'>+</span>${highlighted}${whitelistBadge}</td></tr>`;
+                }
+            }
+            html += '</table></div></div>';
+            container.innerHTML = html;
+        }
+    </script>
+</head>
+<body>
+    <div id='toast' class='toast'></div>
+    
+    <!-- Page content will be inserted here by header-info.hbs and other templates -->

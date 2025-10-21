@@ -1,0 +1,110 @@
+{
+  "description": "Semantic similarity configuration for SQL databases - Detects differences in CREATE INDEX, PROCEDURE, FUNCTION, etc. to properly classify them as separate operations when object names differ",
+  
+  "threshold": 0.40,
+  "lcsWeight": 0.70,
+  "tokenWeight": 0.30,
+  
+  "identifierPatterns": [
+    {
+      "name": "SQL CREATE INDEX",
+      "pattern": "CREATE\\s+(?:UNIQUE\\s+)?(?:CLUSTERED\\s+|NONCLUSTERED\\s+)?INDEX\\s+\\[([^\\]]+)\\]",
+      "options": "IgnoreCase",
+      "priority": 10,
+      "description": "Matches CREATE INDEX statements and captures the index name in brackets. Example: CREATE INDEX [IX_TableName_ColumnName]"
+    },
+    {
+      "name": "SQL CREATE PROCEDURE/FUNCTION/VIEW/TRIGGER",
+      "pattern": "CREATE\\s+(PROCEDURE|FUNCTION|VIEW|TRIGGER)\\s+(\\[?[\\w\\.]+\\]?)",
+      "options": "IgnoreCase",
+      "priority": 20,
+      "description": "Matches CREATE statements for stored procedures, functions, views, and triggers. Captures the object name."
+    },
+    {
+      "name": "SQL ALTER PROCEDURE/FUNCTION/VIEW/TRIGGER",
+      "pattern": "ALTER\\s+(PROCEDURE|FUNCTION|VIEW|TRIGGER)\\s+(\\[?[\\w\\.]+\\]?)",
+      "options": "IgnoreCase",
+      "priority": 30,
+      "description": "Matches ALTER statements for database objects"
+    },
+    {
+      "name": "SQL CREATE TABLE",
+      "pattern": "CREATE\\s+TABLE\\s+(\\[?[\\w\\.]+\\]?)",
+      "options": "IgnoreCase",
+      "priority": 40,
+      "description": "Matches CREATE TABLE statements and captures table name"
+    },
+    {
+      "name": "SQL CONSTRAINT Names",
+      "pattern": "CONSTRAINT\\s+\\[([^\\]]+)\\]",
+      "options": "IgnoreCase",
+      "priority": 50,
+      "description": "Matches CONSTRAINT definitions and captures constraint names"
+    }
+  ],
+  
+  "commonIdentifiers": [
+    "dbo",
+    "sys",
+    "INFORMATION_SCHEMA",
+    "PRIMARY",
+    "FOREIGN",
+    "UNIQUE",
+    "DEFAULT",
+    "CHECK",
+    "GO",
+    "WITH",
+    "ON",
+    "AS",
+    "BEGIN",
+    "END",
+    "IF",
+    "ELSE",
+    "WHILE",
+    "SELECT",
+    "INSERT",
+    "UPDATE",
+    "DELETE"
+  ],
+  
+  "tokenDelimiters": [
+    " ",
+    "\t",
+    "\n",
+    "\r",
+    "(",
+    ")",
+    "[",
+    "]",
+    "{",
+    "}",
+    ",",
+    ".",
+    ";",
+    ":",
+    "=",
+    "<",
+    ">",
+    "+",
+    "-",
+    "*",
+    "/",
+    "%",
+    "&",
+    "|",
+    "^",
+    "~",
+    "!",
+    "?",
+    "@",
+    "#",
+    "$"
+  ],
+  
+  "commentConfig": {
+    "ignoreComments": true,
+    "singleLinePattern": "--",
+    "multiLineStartPattern": "/*",
+    "multiLineEndPattern": "*/"
+  }
+}

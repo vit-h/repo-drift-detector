@@ -1,0 +1,29 @@
+{{#if Extensions}}
+    <h2 style='margin-top: 40px;'>📊 File Extension Statistics</h2>
+    <div class='info'>
+        <p><strong>{{Description}}</strong></p>
+        <table class='summary-table'>
+            <tr style='border-bottom: 1px solid #30363d;'>
+                {{#each Headers}}
+                <th style='text-align: {{TextAlign}}; padding: 8px 12px;'>{{Name}}</th>
+                {{/each}}
+            </tr>
+            {{#each Extensions}}
+            <tr>
+                <td style='padding: 8px 12px;'><strong>{{EscapedExtension}}</strong></td>
+                {{#each Values}}
+                <td class='stats' style='padding: 8px 12px;{{#if Style}} {{Style}}{{/if}}'>{{Value}}</td>
+                {{/each}}
+            </tr>
+            {{/each}}
+            {{#each TotalRows}}
+            <tr style='{{#if BorderTop}}border-top: 2px solid #30363d;{{/if}}'>
+                <td style='padding: 8px 12px;'><strong>{{Label}}</strong></td>
+                {{#each Values}}
+                <td class='stats' style='padding: 8px 12px;{{#if Style}} {{Style}}{{/if}}'>{{#if IsBold}}<strong>{{Value}}</strong>{{else}}{{Value}}{{/if}}</td>
+                {{/each}}
+            </tr>
+            {{/each}}
+        </table>
+    </div>
+{{/if}}

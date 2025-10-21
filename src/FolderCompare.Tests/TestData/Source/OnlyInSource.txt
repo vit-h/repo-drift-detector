@@ -1,0 +1,2 @@
+This file only exists in the source folder.
+It should be reported as OnlyInSource.

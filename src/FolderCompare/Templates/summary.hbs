@@ -1,0 +1,17 @@
+﻿    <h2>📈 Summary</h2>
+    <table class='summary-table'>
+        <tr><td><strong>Total Files Processed:</strong></td><td class='stats'>{{formatNumber Summary.TotalFiles}}</td></tr>
+        <tr><td>Identical (byte-level):</td><td class='stats'>{{formatNumber Summary.Identical}}</td></tr>
+        <tr><td>Identical (normalized):</td><td class='stats'>{{formatNumber Summary.IdenticalNormalized}}</td></tr>
+        <tr><td><a href='#differences-header' class='stat-link'>Different:</a></td><td class='stats'>{{formatNumber Summary.Different}}</td></tr>
+        <tr><td><a href='#only-source-header' class='stat-link'>Only in Source:</a></td><td class='stats'>{{formatNumber Summary.OnlyInSource}}</td></tr>
+        <tr><td><a href='#only-target-header' class='stat-link'>Only in Target:</a></td><td class='stats'>{{formatNumber Summary.OnlyInTarget}}</td></tr>
+        {{#if Summary.IgnoredInSource}}
+        <tr><td><a href='#ignored-source-header' class='stat-link'>Ignored in Source:</a></td><td class='stats'>{{formatNumber Summary.IgnoredInSource}}</td></tr>
+        {{/if}}
+        {{#if Summary.IgnoredInTarget}}
+        <tr><td><a href='#ignored-target-header' class='stat-link'>Ignored in Target:</a></td><td class='stats'>{{formatNumber Summary.IgnoredInTarget}}</td></tr>
+        {{/if}}
+        <tr><td>Errors:</td><td class='stats'>{{formatNumber Summary.Errors}}</td></tr>
+        <tr><td><strong><a href='#filter-stats' class='stat-link'>Total Lines Different:</a></strong></td><td class='stats'>{{formatNumber Summary.TotalLines}}</td></tr>
+    </table>

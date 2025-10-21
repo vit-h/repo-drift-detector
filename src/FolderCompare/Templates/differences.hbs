@@ -1,0 +1,61 @@
+    <div class='collapsible-section'>
+        <div id='differences-header' class='section-header' onclick='toggleSection("differences")'>
+            <div>
+                <span>❌ Not Allowed Differences</span>
+                <span class='section-count'>{{TotalFiles}} files / {{TotalDiffLines}} diff lines</span>
+            </div>
+            <span class='section-toggle'>▼</span>
+        </div>
+        <div id='differences-content' class='section-content'>
+{{#each Files}}
+        <div class='file-diff-container'>
+            <div id='{{FileId}}-header' class='file-diff-header' onclick='toggleFileDiff("{{FileId}}")'>
+                <span class='file-diff-title'>📄 {{EscapedRelativePath}}</span>
+                <span class='file-diff-stats'>{{DiffCount}} lines changed</span>
+                <span class='file-diff-toggle'>▼</span>
+            </div>
+            <div id='{{FileId}}-content' class='file-diff-content'>
+                <div class='file-paths'>
+                    <div class='file-path-item'>
+                        <span class='file-path-label'>Source:</span>
+                        <span class='file-path-links'>
+                            <a data-relative-path='{{EscapedRelativePath}}' data-is-source='true' href='#' class='file-link' target='_blank'>📂 Browse</a>
+                            <a href='#' onclick="openInVSCode(true, '{{EscapedRelativePath}}'); return false;" class='file-link'>🔷 VS Code</a>
+                        </span>
+                    </div>
+                    <div class='file-path-item'>
+                        <span class='file-path-label'>Target:</span>
+                        <span class='file-path-links'>
+                            <a data-relative-path='{{EscapedRelativePath}}' data-is-source='false' href='#' class='file-link' target='_blank'>📂 Browse</a>
+                            <a href='#' onclick="openInVSCode(false, '{{EscapedRelativePath}}'); return false;" class='file-link'>🔷 VS Code</a>
+                        </span>
+                    </div>
+                </div>
+                <div class='diff-view-toggle'>
+                    <button class='diff-view-btn' onclick='toggleDiffView("{{FileId}}", "sidebyside")'>Side-by-Side</button>
+                    <button class='diff-view-btn active' onclick='toggleDiffView("{{FileId}}", "unified")'>Unified</button>
+                    <button class='diff-view-btn' onclick="copyDiffText('{{FileId}}')" title='Copy diff text' style='margin-left: 10px;'>📋 Copy Diff</button>
+                </div>
+                <div id='{{FileId}}-diff' data-diff='{{{EncodedDiffJson}}}' class='unified-view'></div>
+                <div class='diff-command' onclick="executeDiff('{{EscapedRelativePath}}')" title='Click to copy diff command'>
+                    code --diff "{{EscapedRelativePath}}"
+                </div>
+            </div>
+        </div>
+        <script>
+            // Queue this diff for deferred rendering
+            (function() {
+                const fileId = '{{FileId}}';
+                const diffData = {{{DiffJson}}};
+                if (typeof queueDiffRender === 'function') {
+                    queueDiffRender(fileId, diffData);
+                } else {
+                    // Fallback: wait for queue to be available
+                    window.deferredRenders = window.deferredRenders || [];
+                    window.deferredRenders.push({ fileId: fileId, diffData: diffData });
+                }
+            })();
+        </script>
+{{/each}}
+        </div>
+    </div>

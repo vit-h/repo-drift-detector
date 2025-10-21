@@ -1,0 +1,102 @@
+{
+  "description": "Semantic similarity configuration for Python - Detects differences in function and class definitions",
+  
+  "threshold": 0.40,
+  "lcsWeight": 0.70,
+  "tokenWeight": 0.30,
+  
+  "identifierPatterns": [
+    {
+      "name": "Python Class Definition",
+      "pattern": "class\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*[\\(:]",
+      "options": "None",
+      "priority": 10,
+      "description": "Matches Python class definitions. Example: class MyClass: or class MyClass(BaseClass):"
+    },
+    {
+      "name": "Python Function Definition",
+      "pattern": "def\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
+      "options": "None",
+      "priority": 20,
+      "description": "Matches Python function definitions. Example: def my_function():"
+    },
+    {
+      "name": "Python Async Function",
+      "pattern": "async\\s+def\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
+      "options": "None",
+      "priority": 15,
+      "description": "Matches Python async function definitions"
+    },
+    {
+      "name": "Python Decorator",
+      "pattern": "@([a-zA-Z_][a-zA-Z0-9_]*)",
+      "options": "None",
+      "priority": 30,
+      "description": "Matches Python decorators"
+    }
+  ],
+  
+  "commonIdentifiers": [
+    "self",
+    "cls",
+    "init",
+    "str",
+    "repr",
+    "main",
+    "test",
+    "setup",
+    "teardown",
+    "get",
+    "set",
+    "put",
+    "post",
+    "delete",
+    "update",
+    "create",
+    "read",
+    "write",
+    "open",
+    "close",
+    "run",
+    "start",
+    "stop",
+    "data",
+    "result",
+    "value",
+    "item",
+    "config",
+    "context",
+    "request",
+    "response"
+  ],
+  
+  "tokenDelimiters": [
+    " ",
+    "\t",
+    "\n",
+    "(",
+    ")",
+    "[",
+    "]",
+    "{",
+    "}",
+    ",",
+    ".",
+    ":",
+    "=",
+    "<",
+    ">",
+    "+",
+    "-",
+    "*",
+    "/",
+    "%",
+    "&",
+    "|",
+    "^",
+    "~",
+    "!",
+    "@",
+    "#"
+  ]
+}

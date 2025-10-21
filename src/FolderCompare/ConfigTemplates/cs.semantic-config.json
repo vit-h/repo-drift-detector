@@ -1,0 +1,132 @@
+{
+  "description": "Semantic similarity configuration for C# - Detects differences in class, interface, method, and property definitions",
+  
+  "threshold": 0.40,
+  "lcsWeight": 0.70,
+  "tokenWeight": 0.30,
+  
+  "identifierPatterns": [
+    {
+      "name": "C# Class Definition",
+      "pattern": "class\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "options": "None",
+      "priority": 10,
+      "description": "Matches C# class definitions"
+    },
+    {
+      "name": "C# Interface Definition",
+      "pattern": "interface\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "options": "None",
+      "priority": 10,
+      "description": "Matches C# interface definitions"
+    },
+    {
+      "name": "C# Struct Definition",
+      "pattern": "struct\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "options": "None",
+      "priority": 10,
+      "description": "Matches C# struct definitions"
+    },
+    {
+      "name": "C# Enum Definition",
+      "pattern": "enum\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "options": "None",
+      "priority": 10,
+      "description": "Matches C# enum definitions"
+    },
+    {
+      "name": "C# Method Definition",
+      "pattern": "(?:public|private|protected|internal|static|async|virtual|override)\\s+(?:[\\w<>\\[\\]]+)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
+      "options": "None",
+      "priority": 20,
+      "description": "Matches C# method definitions"
+    },
+    {
+      "name": "C# Property Definition",
+      "pattern": "(?:public|private|protected|internal)\\s+(?:[\\w<>\\[\\]]+)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\{",
+      "options": "None",
+      "priority": 30,
+      "description": "Matches C# property definitions"
+    },
+    {
+      "name": "C# Namespace",
+      "pattern": "namespace\\s+([\\w\\.]+)",
+      "options": "None",
+      "priority": 40,
+      "description": "Matches C# namespace declarations"
+    }
+  ],
+  
+  "commonIdentifiers": [
+    "this",
+    "base",
+    "object",
+    "string",
+    "int",
+    "bool",
+    "void",
+    "async",
+    "await",
+    "Task",
+    "IEnumerable",
+    "List",
+    "Dictionary",
+    "ToString",
+    "Equals",
+    "GetHashCode",
+    "Dispose",
+    "Main",
+    "Test",
+    "Setup",
+    "TearDown",
+    "Get",
+    "Set",
+    "Add",
+    "Remove",
+    "Update",
+    "Delete",
+    "Create",
+    "Read",
+    "Write",
+    "data",
+    "result",
+    "value",
+    "item",
+    "config",
+    "context",
+    "request",
+    "response"
+  ],
+  
+  "tokenDelimiters": [
+    " ",
+    "\t",
+    "\n",
+    "(",
+    ")",
+    "[",
+    "]",
+    "{",
+    "}",
+    "<",
+    ">",
+    ",",
+    ".",
+    ";",
+    ":",
+    "=",
+    "+",
+    "-",
+    "*",
+    "/",
+    "%",
+    "&",
+    "|",
+    "^",
+    "~",
+    "!",
+    "?",
+    "@",
+    "#"
+  ]
+}

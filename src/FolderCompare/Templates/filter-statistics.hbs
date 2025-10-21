@@ -1,0 +1,30 @@
+    <h2 id='filter-stats' style='margin-top: 40px;'>🔍 Filter Statistics</h2>
+    <div class='info'>
+        <p><strong>Differences filtered out by substitution rules and whitelist patterns:</strong></p>
+        <table class='summary-table'>
+            {{#each FilterRulesWithMatches}}
+            <tr>
+                <td>
+                    {{#if this.AnchorId}}
+                    <a href='#{{this.AnchorId}}' class='stat-link'>{{{this.EscapedName}}}:</a>
+                    {{else}}
+                    {{{this.EscapedName}}}:
+                    {{/if}}
+                </td>
+                <td class='stats'>{{formatNumber this.FilteredCount}} differences in {{formatNumber this.FilteredFilesCount}} files</td>
+            </tr>
+            {{/each}}
+            
+            {{#each WhitelistRulesWithZeroMatches}}
+            <tr style='opacity: 0.5;'>
+                <td>{{{this.EscapedName}}}:</td>
+                <td class='stats'>0 differences</td>
+            </tr>
+            {{/each}}
+            
+            <tr style='border-top: 2px solid #30363d;'>
+                <td><strong>Total Filtered:</strong></td>
+                <td class='stats'><strong>{{formatNumber TotalFilteredCount}} differences in {{formatNumber TotalFilteredFilesCount}} files</strong></td>
+            </tr>
+        </table>
+    </div>

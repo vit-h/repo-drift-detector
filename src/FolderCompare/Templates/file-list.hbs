@@ -1,0 +1,25 @@
+{{#if Files}}
+    <div class='collapsible-section'>
+        <div id='{{SectionId}}-header' class='section-header' onclick='toggleSection("{{SectionId}}")'>
+            <div>
+                <span>{{{Title}}}</span>
+                <span class='section-count'>{{formatNumber FileCount}} files</span>
+            </div>
+            <span class='section-toggle'>▼</span>
+        </div>
+        <div id='{{SectionId}}-content' class='section-content'>
+            <div style='margin: 20px 0;'>
+                {{#each Files}}
+                <div class='file-section'>
+                    <div class='file-header'>📄 {{EscapedRelativePath}}</div>
+                    <div style='margin: 10px 0; font-size: 0.9em; color: #858585;'>
+                        <a data-relative-path='{{RelativePath}}' data-is-source='{{#if ../IsSource}}true{{else}}false{{/if}}' href='{{#if ../IsSource}}{{SourceUri}}{{else}}{{TargetUri}}{{/if}}' class='file-link file-browse-link' target='_blank'>📂 Browse</a>
+                        <span style='margin: 0 10px;'>|</span>
+                        <a href='#' onclick="openInVSCode({{#if ../IsSource}}true{{else}}false{{/if}}, '{{RelativePath}}'); return false;" class='file-link'>🔷 VS Code</a>
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+{{/if}}
