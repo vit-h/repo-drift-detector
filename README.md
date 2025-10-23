@@ -252,154 +252,45 @@ jobs:
 
 ## ⚙️ Configuration
 
-### Minimal Configuration
+**Examples**: See [example-comparison-config.json](./example-comparison-config.json)
 
-```json
-{
-  "sourcePath": "../source",
-  "targetPath": "../target",
-  "includeExtensions": [".sql"]
-}
-```
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `sourcePath` | string | - | **Required**: Source folder |
+| `targetPath` | string | - | **Required**: Target folder |
+| `outputPath` | string | `"."` | Report output directory |
+| `includeExtensions` | array | All | Extensions to include |
+| `excludeExtensions` | array | - | Extensions to exclude |
+| `ignoreFolders` | array | - | Folders to skip (wildcards) |
+| `ignoreCase` | boolean | `false` | Case-insensitive comparison |
+| `sortInserts` | boolean | `false` | Sort SQL INSERTs |
+| `maxFileSizeMb` | number | `100` | Max file size (MB) |
+| `maxThreads` | number | `0` | Parallel threads (0=auto) |
+| `bufferSize` | number | `64` | Buffer size (KB) |
+| `semanticConfigDirectory` | string | `"ConfigTemplates"` | Semantic config directory |
+| `allowedSubstitutions` | array | - | Substitution rules |
+| `diffFilters` | array | - | Regex patterns to filter |
+| `whitelistLinePatterns` | array | - | Line exclusion patterns |
+| `whitelistFilePatterns` | array | - | File-specific rules |
 
-### Complete Configuration Example
+**Property Details:**
 
-```json
-{
-  "sourcePath": "../database-source",
-  "targetPath": "../database-target",
-  "outputPath": "./reports",
-  "includeExtensions": [".sql", ".py", ".cs"],
-  "excludeExtensions": [".exe", ".dll"],
-  "ignoreFolders": ["bin", "obj", "node_modules", ".git", "*_backup"],
-  "ignoreCase": false,
-  "sortInserts": true,
-  "maxFileSizeMb": 100,
-  "bufferSize": 64,
-  "maxThreads": 0,
-  "diffFilters": [
-    "^\\s*--",
-    "^\\s*/\\*",
-    "-- Generated on:",
-    "-- Version:"
-  ],
-  "allowedSubstitutions": [
-    {
-      "name": "Timezone Conversion",
-      "source": "GETDATE()",
-      "target": "CAST(getdate() AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific Standard Time' as datetime)",
-      "ignoreCase": true,
-      "trimWhitespaceAround": true,
-      "reportMatched": true
-    }
-  ],
-  "whitelistLinePatterns": [
-    {
-      "name": "Version Comments",
-      "pattern": "-- Version:",
-      "options": "IgnoreCase",
-      "existsInSource": true,
-      "existsInTarget": true
-    }
-  ],
-  "whitelistFilePatterns": [
-    {
-      "name": "Generated Files",
-      "pattern": "*.generated.cs",
-      "matchFullPath": false
-    }
-  ],
-  "commentConfig": {
-    "enabled": true,
-    "singleLineComments": ["--", "//", "#"],
-    "multiLineCommentStart": "/*",
-    "multiLineCommentEnd": "*/"
-  }
-}
-```
+**Paths**: `sourcePath` (required), `targetPath` (required), `outputPath` (report directory)
 
-### Key Configuration Properties
+**File Filtering**: `includeExtensions` (case-insensitive), `excludeExtensions`, `ignoreFolders` (supports wildcards)
 
-| Property | Description |
-|----------|-------------|
-| `sourcePath` / `targetPath` | **Required** - Paths to compare |
-| `includeExtensions` | File extensions to include (e.g., `[".sql", ".py"]`) |
-| `ignoreFolders` | Folders to exclude (supports wildcards) |
-| `diffFilters` | Regex patterns to filter from diffs |
-| `allowedSubstitutions` | Text substitution rules |
-| `whitelistLinePatterns` | Patterns to whitelist specific lines |
-| `sortInserts` | Sort INSERT statements before comparing |
-| `maxThreads` | Parallel threads (0 = auto-detect CPU cores) |
+**Comparison**: `ignoreCase`, `sortInserts`, `maxFileSizeMb`
 
-### Substitution Rules
+**Performance**: `maxThreads` (0=auto), `bufferSize` (KB)
 
-Allow specific text transformations between source and target:
+**Semantic Similarity**: `semanticConfigDirectory` - See [ConfigTemplates/README.md](./src/FolderCompare/ConfigTemplates/README.md)
 
-```json
-{
-  "allowedSubstitutions": [
-    {
-      "name": "Rule Description",
-      "source": "Text in source",
-      "target": "Text in target",
-      "ignoreCase": true,
-      "trimWhitespaceAround": true,
-      "reportMatched": true,
-      "allowStructuralChanges": false
-    }
-  ]
-}
-```
+**Filtering**: 
+- `allowedSubstitutions` - Properties: `name`, `source`, `target`, `ignoreCase`, `trimWhitespaceAround`, `reportMatched`, `allowStructuralChanges`
+- `diffFilters` - Regex patterns to hide from output
+- `whitelistLinePatterns` - Properties: `name`, `contains`, `existsInSource`, `existsInTarget`
+- `whitelistFilePatterns` - Properties: `name`, `pattern`, `allowLineMissingInSource`, `allowLineMissingInTarget`, `allowModified`
 
-**Properties**:
-- `name`: Human-readable description
-- `source`: Expected text in source files
-- `target`: Expected text in target files
-- `ignoreCase`: Case-insensitive matching
-- `trimWhitespaceAround`: Normalize whitespace
-- `reportMatched`: Include in filter statistics
-- `allowStructuralChanges`: Allow line additions/removals
-
-### Whitelist Patterns
-
-Exclude specific lines or files from comparison:
-
-```json
-{
-  "whitelistLinePatterns": [
-    {
-      "name": "Pattern Description",
-      "pattern": "regex or substring",
-      "options": "IgnoreCase|Multiline",
-      "contains": "substring (alternative to pattern)",
-      "existsInSource": true,
-      "existsInTarget": true
-    }
-  ],
-  "whitelistFilePatterns": [
-    {
-      "name": "File Pattern Description",
-      "pattern": "*.generated.cs",
-      "matchFullPath": false
-    }
-  ]
-}
-```
-
-### Diff Filters
-
-Remove specific patterns from diff output:
-
-```json
-{
-  "diffFilters": [
-    "^\\s*--",                    // SQL comments
-    "^\\s*/\\*",                  // Multi-line comments
-    "-- Generated on: \\d{4}",   // Timestamps
-    "Version: \\d+\\.\\d+"       // Version numbers
-  ]
-}
-```
 
 ---
 

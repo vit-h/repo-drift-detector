@@ -92,18 +92,26 @@ public class FileComparer
             var (linesB, mapB) = TextNormalizer.NormalizeTextLinesWithMap(
                 targetFilePath, _ignoreCase, _sortInserts, _bufferSizeKb);
 
-            // Check if normalized content is identical
+            // Get semantic similarity config for this file extension
+            var fileExtension = Path.GetExtension(relativePath);
+            var semanticConfig = GetSemanticConfigForFile(fileExtension);
+
+            // Strip comments BEFORE computing differences if comment filtering is enabled
+            var commentConfig = semanticConfig?.CommentConfig;
+            if (commentConfig != null && commentConfig.IgnoreComments)
+            {
+                linesA = CommentFilter.StripCommentsFromLines(linesA, commentConfig);
+                linesB = CommentFilter.StripCommentsFromLines(linesB, commentConfig);
+            }
+
+            // Check if normalized content is identical (after comment stripping)
             if (linesA.SequenceEqual(linesB))
             {
                 result.Status = ComparisonStatus.IdenticalNormalized;
                 return result;
             }
 
-            // Get semantic similarity config for this file extension
-            var fileExtension = Path.GetExtension(relativePath);
-            var semanticConfig = GetSemanticConfigForFile(fileExtension);
-
-            // Compute differences
+            // Compute differences on comment-stripped content
             var differences = DiffEngine.ComputeDifferences(linesA, mapA, linesB, mapB, semanticConfig);
 
             // Apply filter rules first (exact replacements with stats)
@@ -115,22 +123,11 @@ public class FileComparer
             // Apply whitelist patterns (line and file-level)
             var (afterWhitelist, filteredByWhitelist) = ApplyWhitelistPatterns(keptDifferences, relativePath);
 
-            // Apply comment filtering based on file extension's semantic config
-            var filteredByComments = new List<Difference>();
-            var commentConfig = semanticConfig?.CommentConfig;
-            if (commentConfig != null && commentConfig.IgnoreComments)
-            {
-                var (afterComments, commentDiffs) = CommentFilter.FilterComments(afterWhitelist, commentConfig, linesA, linesB);
-                afterWhitelist = afterComments;
-                filteredByComments = commentDiffs;
-            }
-
-            // Combine all filtered diffs
+            // Combine all filtered diffs (no more comment filtering needed since we stripped them before comparison)
             var allFiltered = new List<Difference>();
             allFiltered.AddRange(filteredByRules);
             allFiltered.AddRange(filteredByRegex);
             allFiltered.AddRange(filteredByWhitelist);
-            allFiltered.AddRange(filteredByComments);
 
             // Check for structural changes (Added/Removed lines)
             var hasUnfilteredStructuralChanges = afterWhitelist.Any(d => 

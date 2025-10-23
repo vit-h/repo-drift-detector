@@ -7,6 +7,12 @@ public class CommandLineOptions
     [Option('c', "config", Required = false, HelpText = "Path to configuration JSON file. If specified, other options are ignored unless overridden.")]
     public string? ConfigPath { get; set; }
 
+    [Option("configs", Required = false, Separator = ',', HelpText = "Multiple configuration JSON files (comma-separated).")]
+    public IEnumerable<string>? ConfigPaths { get; set; }
+
+    [Option('d', "databases", Required = false, Separator = ',', HelpText = "Database names to compare (e.g., 'vip,care'). Looks for {name}-comparison.json files.")]
+    public IEnumerable<string>? DatabaseNames { get; set; }
+
     [Option("create-config", Required = false, HelpText = "Create a sample configuration file at the specified path and exit.")]
     public string? CreateConfigPath { get; set; }
 

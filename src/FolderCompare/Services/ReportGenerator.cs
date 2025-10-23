@@ -193,21 +193,21 @@ public static class ReportGenerator
         string absoluteSourcePath,
         string absoluteTargetPath)
     {
-        var analysisFileName = $"{sourceFolderName}_vs_{targetFolderName}_{timestamp}_ANALYSIS.txt";
+        var analysisFileName = $"{sourceFolderName}_vs_{targetFolderName}_{timestamp}_Not_Allowed_Differences.txt";
         var analysisPath = Path.Combine(outputPath, analysisFileName);
 
         using var writer = new StreamWriter(analysisPath, false, Encoding.UTF8);
 
         writer.WriteLine("=============================================================================");
-        writer.WriteLine("UNFILTERED DIFFERENCES ANALYSIS REPORT");
+        writer.WriteLine("NOT ALLOWED DIFFERENCES REPORT");
         writer.WriteLine("=============================================================================");
         writer.WriteLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         writer.WriteLine($"Source: {sourcePath}");
         writer.WriteLine($"Target: {targetPath}");
         writer.WriteLine();
-        writer.WriteLine("This report contains ONLY files with differences that were NOT filtered out.");
-        writer.WriteLine("Use this to analyze patterns and identify new allowed substitutions for");
-        writer.WriteLine("AWS SQL Server to Azure SQL migration.");
+        writer.WriteLine("This report contains ONLY differences that were NOT filtered out by substitution rules.");
+        writer.WriteLine("These represent schema differences that may need attention or new filtering rules.");
+        writer.WriteLine("Use this to analyze patterns and identify potential issues in the migration.");
         writer.WriteLine();
 
         // Get only files with unfiltered differences
@@ -243,12 +243,57 @@ public static class ReportGenerator
             var targetFullPath = Path.Combine(absoluteTargetPath, result.RelativePath);
             
             writer.WriteLine($"[{fileIndex}/{withDifferences.Count}] {result.RelativePath}");
-            writer.WriteLine($"  Differences: {result.DifferenceCount:N0} lines");
+            writer.WriteLine($"  Unfiltered Differences: {result.DifferenceCount:N0} lines");
+            writer.WriteLine($"  Allowed Differences: {result.FilteredDifferences.Count:N0} lines");
             writer.WriteLine($"  Source: file:///{sourceFullPath.Replace('\\', '/')}");
             writer.WriteLine($"  Target: file:///{targetFullPath.Replace('\\', '/')}");
             writer.WriteLine($"  Diff Command: code --diff \"{sourceFullPath}\" \"{targetFullPath}\"");
             writer.WriteLine();
-            writer.WriteLine("  LINE DIFFERENCES:");
+
+            // Show allowed (filtered) differences first with their rule labels
+            if (result.FilteredDifferences.Any())
+            {
+                writer.WriteLine("  ALLOWED DIFFERENCES (with applied rules):");
+                writer.WriteLine("  " + new string('-', 75));
+                
+                var filteredToShow = result.FilteredDifferences.Take(20).ToList();
+                foreach (var diff in filteredToShow)
+                {
+                    var ruleLabel = !string.IsNullOrEmpty(diff.MatchedRuleName) ? $"✓ {diff.MatchedRuleName}" : "✓ Filtered";
+                    
+                    switch (diff.Type)
+                    {
+                        case DifferenceType.Modified:
+                            writer.WriteLine($"  Line {diff.SourceLineNumber} → {diff.TargetLineNumber} (ALLOWED)");
+                            writer.WriteLine($"    SOURCE:  {diff.SourceContent?.Trim()}");
+                            writer.WriteLine($"    TARGET:  {diff.TargetContent?.Trim()}");
+                            writer.WriteLine($"    RULE:    {ruleLabel}");
+                            break;
+                        case DifferenceType.Removed:
+                            writer.WriteLine($"  Line {diff.SourceLineNumber} (ALLOWED REMOVAL)");
+                            writer.WriteLine($"    < {diff.SourceContent?.Trim()}");
+                            writer.WriteLine($"    RULE: {ruleLabel}");
+                            break;
+                        case DifferenceType.Added:
+                            writer.WriteLine($"  Line {diff.TargetLineNumber} (ALLOWED ADDITION)");
+                            writer.WriteLine($"    > {diff.TargetContent?.Trim()}");
+                            writer.WriteLine($"    RULE: {ruleLabel}");
+                            break;
+                    }
+                    writer.WriteLine();
+                }
+                
+                if (result.FilteredDifferences.Count > 20)
+                {
+                    writer.WriteLine($"  ... and {result.FilteredDifferences.Count - 20} more allowed differences");
+                    writer.WriteLine();
+                }
+                
+                writer.WriteLine("  " + new string('-', 75));
+                writer.WriteLine();
+            }
+
+            writer.WriteLine("  NOT ALLOWED DIFFERENCES (require attention):");
             writer.WriteLine("  " + new string('-', 75));
 
             // Show actual line differences
@@ -389,17 +434,26 @@ public static class ReportGenerator
             writer.WriteLine("Differences Filtered By Rule and Whitelist Patterns:");
             
             var allFilterStats = new Dictionary<string, int>();
+            
+            // Initialize all defined filter rules with 0 count
+            foreach (var rule in filterRules)
+            {
+                allFilterStats[rule.Name] = 0;
+            }
+            
+            // Add actual counts from results
             foreach (var result in results)
             {
                 foreach (var kvp in result.FilterStats)
                 {
-                    if (!allFilterStats.ContainsKey(kvp.Key))
-                        allFilterStats[kvp.Key] = 0;
-                    allFilterStats[kvp.Key] += kvp.Value;
+                    if (allFilterStats.ContainsKey(kvp.Key))
+                        allFilterStats[kvp.Key] += kvp.Value;
+                    else
+                        allFilterStats[kvp.Key] = kvp.Value; // For whitelist patterns not in filterRules
                 }
             }
             
-            foreach (var kvp in allFilterStats.OrderByDescending(x => x.Value))
+            foreach (var kvp in allFilterStats.OrderByDescending(x => x.Value).ThenBy(x => x.Key))
             {
                 writer.WriteLine($"  {kvp.Key}: {kvp.Value:N0} differences");
             }
@@ -566,20 +620,29 @@ public static class ReportGenerator
         if (filterRules != null && filterRules.Any())
         {
             var allFilterStats = new Dictionary<string, int>();
+            
+            // Initialize all defined filter rules with 0 count
+            foreach (var rule in filterRules)
+            {
+                allFilterStats[rule.Name] = 0;
+            }
+            
+            // Add actual counts from results
             foreach (var result in results)
             {
                 foreach (var kvp in result.FilterStats)
                 {
-                    if (!allFilterStats.ContainsKey(kvp.Key))
-                        allFilterStats[kvp.Key] = 0;
-                    allFilterStats[kvp.Key] += kvp.Value;
+                    if (allFilterStats.ContainsKey(kvp.Key))
+                        allFilterStats[kvp.Key] += kvp.Value;
+                    else
+                        allFilterStats[kvp.Key] = kvp.Value; // For whitelist patterns not in filterRules
                 }
             }
             
             if (allFilterStats.Any())
             {
                 writer.WriteLine("Breakdown by Filter Rule:");
-                foreach (var kvp in allFilterStats.OrderByDescending(x => x.Value))
+                foreach (var kvp in allFilterStats.OrderByDescending(x => x.Value).ThenBy(x => x.Key))
                 {
                     writer.WriteLine($"  {kvp.Key}: {kvp.Value:N0} differences");
                 }

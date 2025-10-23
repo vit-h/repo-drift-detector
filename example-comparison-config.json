@@ -1,16 +1,23 @@
 {
   "sourcePath": "C:\\Path\\To\\Source",
   "targetPath": "C:\\Path\\To\\Target",
-  "outputPath": ".",
+  "outputPath": "./reports",
   "includeExtensions": [
     ".sql"
   ],
+  "excludeExtensions": [
+    ".zip"
+  ],
   "ignoreFolders": [
     "Misc",
-    "bin",
-    "obj"
+    "*_backup",
+    "temp*"
   ],
+  "ignoreCase": false,
   "sortInserts": true,
+  "maxFileSizeMb": 100,
+  "maxThreads": 0,
+  "bufferSize": 64,
   "allowedSubstitutions": [
     {
       "name": "TimeZone Conversion - Basic GETDATE()",
@@ -18,7 +25,9 @@
       "target": "cast(getdate() AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific Standard Time' as datetime)",
       "ignoreCase": true,
       "trimWhitespaceAround": true,
-      "reportMatched": true
+      "normalizeInternalWhitespace": false,
+      "reportMatched": true,
+      "allowStructuralChanges": false
     },
     {
       "name": "Filegroup Removal - ON [PRIMARY]",
@@ -27,6 +36,14 @@
       "ignoreCase": true,
       "trimWhitespaceAround": true,
       "reportMatched": true
+    },
+    {
+      "name": "Statement Terminator - Semicolon Addition",
+      "source": "",
+      "target": ";",
+      "ignoreCase": false,
+      "trimWhitespaceAround": true,
+      "reportMatched": false
     }
   ],
   "whitelistLinePatterns": [
@@ -35,6 +52,12 @@
       "contains": "RowRevision]",
       "existsInSource": true,
       "existsInTarget": false
+    },
+    {
+      "name": "GRANT statements",
+      "contains": "GRANT SELECT ON",
+      "existsInSource": false,
+      "existsInTarget": true
     }
   ],
   "whitelistFilePatterns": [

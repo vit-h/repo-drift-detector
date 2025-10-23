@@ -13,6 +13,35 @@ public static class CommentFilter
     private static readonly Dictionary<string, Regex> MultiLineEndRegexCache = new();
 
     /// <summary>
+    /// Strips all comments from a list of lines, returning the content without comments
+    /// Also removes empty lines and whitespace-only lines
+    /// This should be called BEFORE computing differences, not after
+    /// </summary>
+    public static List<string> StripCommentsFromLines(List<string> lines, CommentConfig config)
+    {
+        if (config == null || !config.IgnoreComments)
+            return lines;
+
+        var result = new List<string>();
+        bool inMultiLineComment = false;
+
+        foreach (var line in lines)
+        {
+            var strippedLine = StripComments(line, config, ref inMultiLineComment);
+            
+            // Skip empty lines and whitespace-only lines if configured to do so
+            if (config.IgnoreEmptyLines && string.IsNullOrWhiteSpace(strippedLine))
+            {
+                continue; // Skip this line
+            }
+            
+            result.Add(strippedLine);
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Removes comments from a line of code
     /// </summary>
     public static string StripComments(string line, CommentConfig config, ref bool inMultiLineComment)

@@ -31,12 +31,115 @@ class Program
                 return 0;
             }
 
+            // Determine config files to process
+            var configFiles = new List<string>();
+            
+            if (!string.IsNullOrEmpty(options.ConfigPath))
+            {
+                configFiles.Add(options.ConfigPath);
+            }
+            else if (options.ConfigPaths?.Any() == true)
+            {
+                configFiles.AddRange(options.ConfigPaths);
+            }
+            else if (options.DatabaseNames?.Any() == true)
+            {
+                // Convert database names to config file paths
+                foreach (var dbName in options.DatabaseNames)
+                {
+                    var configFile = $"{dbName.Trim().ToLower()}-comparison.json";
+                    configFiles.Add(configFile);
+                }
+            }
+            else
+            {
+                // Use command-line options for single comparison
+                return RunSingleComparison(options);
+            }
+
+            // Run multiple comparisons
+            var results = new List<(string Database, int ExitCode, string Status)>();
+            var hasFailures = false;
+
+            Console.WriteLine($"Running comparisons for: {string.Join(", ", configFiles.Select(Path.GetFileNameWithoutExtension))}");
+            Console.WriteLine();
+
+            foreach (var configFile in configFiles)
+            {
+                var dbName = Path.GetFileNameWithoutExtension(configFile).Replace("-comparison", "");
+                Console.WriteLine($"Processing {dbName}...");
+                
+                var exitCode = RunSingleComparison(new CommandLineOptions { ConfigPath = configFile });
+                
+                var status = exitCode switch
+                {
+                    0 => "✅ Identical",
+                    1 => "⚠️  Differences Found",
+                    _ => "❌ Failed"
+                };
+                
+                results.Add((dbName, exitCode, status));
+                Console.WriteLine($"  {dbName}: {status}");
+                Console.WriteLine();
+                
+                if (exitCode > 1) hasFailures = true;
+            }
+
+            // Show summary
+            Console.WriteLine("Summary:");
+            foreach (var (database, exitCode, status) in results)
+            {
+                var color = exitCode <= 1 ? ConsoleColor.Green : ConsoleColor.Red;
+                Console.ForegroundColor = color;
+                Console.WriteLine($"  {database}: {status}");
+                Console.ResetColor();
+            }
+            
+            Console.WriteLine();
+            Console.WriteLine("✅ All comparisons completed");
+
+            // Return appropriate exit code
+            if (hasFailures) return 2;
+            if (results.Any(r => r.ExitCode == 1)) return 1;
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Fatal error: {ex.Message}");
+            Console.Error.WriteLine(ex.StackTrace);
+            return 4;
+        }
+    }
+
+    static int RunSingleComparison(CommandLineOptions options)
+    {
+        try
+        {
             // Load configuration from file or command line
             ComparisonConfig config;
             if (!string.IsNullOrEmpty(options.ConfigPath))
             {
                 Console.WriteLine($"Loading configuration from: {options.ConfigPath}");
                 config = ConfigurationService.LoadConfig(options.ConfigPath);
+                
+                // Resolve relative paths based on config file location
+                var configDir = Path.GetDirectoryName(Path.GetFullPath(options.ConfigPath))!;
+                
+                if (!string.IsNullOrEmpty(config.SourcePath) && !Path.IsPathRooted(config.SourcePath))
+                {
+                    config.SourcePath = Path.GetFullPath(Path.Combine(configDir, config.SourcePath));
+                }
+                
+                if (!string.IsNullOrEmpty(config.TargetPath) && !Path.IsPathRooted(config.TargetPath))
+                {
+                    config.TargetPath = Path.GetFullPath(Path.Combine(configDir, config.TargetPath));
+                }
+                
+                if (!string.IsNullOrEmpty(config.OutputPath) && !Path.IsPathRooted(config.OutputPath))
+                {
+                    config.OutputPath = Path.GetFullPath(Path.Combine(configDir, config.OutputPath));
+                }
+                
                 Console.WriteLine("Configuration loaded successfully.");
                 Console.WriteLine();
             }
@@ -387,11 +490,11 @@ class Program
             Console.WriteLine($"  → Open in browser for clickable diff links!");
             
             // Get the analysis report path
-            var analysisReportPath = reportPath.Replace(".txt", "_ANALYSIS.txt");
+            var analysisReportPath = reportPath.Replace(".txt", "_Not_Allowed_Differences.txt");
             if (File.Exists(analysisReportPath))
             {
-                Console.WriteLine($"Analysis report: {analysisReportPath}");
-                Console.WriteLine($"  → Contains ONLY unfiltered differences for pattern analysis");
+                Console.WriteLine($"Not Allowed Differences report: {analysisReportPath}");
+                Console.WriteLine($"  → Contains ONLY unfiltered differences that need attention");
             }
             
             Console.WriteLine($"Processing complete in {stopwatch.Elapsed:hh\\:mm\\:ss}");

@@ -50,17 +50,23 @@ public static class ConfigurationService
 
         // Get the semantic config directory
         var semanticConfigDir = config.SemanticConfigDirectory;
+        Console.WriteLine($"Semantic config directory from config: '{semanticConfigDir}' (null/empty = use default)");
+        
         if (string.IsNullOrEmpty(semanticConfigDir))
         {
+            Console.WriteLine("No semantic config directory specified, skipping auto-loading");
             return; // No directory specified, skip auto-loading
         }
 
         var fullConfigDir = Path.IsPathRooted(semanticConfigDir)
             ? semanticConfigDir
             : Path.Combine(baseDirectory, semanticConfigDir);
+            
+        Console.WriteLine($"Looking for semantic configs in: {fullConfigDir}");
 
         if (!Directory.Exists(fullConfigDir))
         {
+            Console.WriteLine($"Semantic config directory does not exist: {fullConfigDir}");
             return; // Directory doesn't exist, skip auto-loading
         }
 
@@ -86,6 +92,7 @@ public static class ConfigurationService
             {
                 try
                 {
+                    Console.WriteLine($"Loading semantic config: {configFilePath}");
                     var semanticConfig = LoadSemanticSimilarityConfig(configFilePath);
                     config.SemanticConfigsByExtension[extension] = semanticConfig;
                 }
@@ -93,6 +100,10 @@ public static class ConfigurationService
                 {
                     Console.WriteLine($"Warning: Failed to load semantic config for {extension}: {ex.Message}");
                 }
+            }
+            else
+            {
+                Console.WriteLine($"Semantic config not found: {configFilePath}");
             }
         }
 

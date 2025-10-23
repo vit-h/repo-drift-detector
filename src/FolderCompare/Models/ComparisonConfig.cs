@@ -169,6 +169,12 @@ public class CommentConfig
     /// </summary>
     [JsonPropertyName("multiLineEndPattern")]
     public string? MultiLineEndPattern { get; set; }
+
+    /// <summary>
+    /// When true, also ignores empty lines and whitespace-only lines during comparison
+    /// </summary>
+    [JsonPropertyName("ignoreEmptyLines")]
+    public bool IgnoreEmptyLines { get; set; } = true;
 }
 
 /// <summary>
